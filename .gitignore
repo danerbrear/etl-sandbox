@@ -1,3 +1,5 @@
 /producer/.venv
 /consumer/.venv
+/consumer/poetry.lock
+/consumer/__pycache__
 /broker
