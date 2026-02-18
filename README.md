@@ -25,7 +25,7 @@ Events will be structured like the following:
 We will use a single Python AWS Lambda to handle Extraction, Trasformation, and Loading. The Lambda should be split up into each step of the ETL job to handle the following responsibilities
 
 - Extract
-    - Receive the event
+    - Receive the event starting from most recent offset
 - Transform
     - Validate required fields
     - De-duplicate
