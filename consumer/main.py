@@ -1,6 +1,6 @@
 import time
 import json
-from jsonlines import open
+import jsonlines
 from models import Event
 from pydantic import ValidationError
 
@@ -8,11 +8,26 @@ type LoadedEvents = list[Event]
 
 def load() -> tuple[bool, LoadedEvents | None]:
     print("\nLoading events from stream...")
+
+    # Get offset
+    offset: int = 0
+    try:
+        with open('../broker/offset.txt', 'r') as file:
+            file_content = file.read()
+        offset = int(file_content)
+        print(f"Starting offset: {offset}")
+    except Exception as err:
+        print(f"Could not fetch offset, setting to file start. {str(err)}") 
+
+    # Load Events
     try:
         events = []
         invalid_events: list[tuple[dict, str]] = []
-        with open('../broker/events.jsonl') as reader:
-            for line in reader:
+        with jsonlines.open('../broker/events.jsonl') as reader:
+            it = reader.iter()
+            for _ in range(offset):
+                next(it, None) 
+            for line in it:
                 try:
                     event = Event(
                         event_id=line.get("event_id", None),
