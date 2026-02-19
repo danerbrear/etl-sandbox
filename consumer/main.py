@@ -1,10 +1,11 @@
 import time
 import json
 import jsonlines
-from models import Event
+from models import Event, Transaction
 from pydantic import ValidationError
 
 type LoadedEvents = list[Event]
+type TransformedEvents = list[Transaction]
 
 def load() -> tuple[bool, LoadedEvents | None]:
     print("\nLoading events from stream...")
@@ -54,11 +55,30 @@ def load() -> tuple[bool, LoadedEvents | None]:
         print("File not found")
         return (False, None)
 
-def transform():
-    print("Transforming...")
+def transform(events: LoadedEvents) -> TransformedEvents:
+    print("\nTransforming...")
+    transformed_events = []
+    failed_events: list[Event, str] = []
+    for event in events:
+        # Check idempotency
+
+        try:
+            # Validate and apply business rules to the event
+            transaction = Transaction.from_event(event)
+
+            # Enrich
+
+            # Add to list of validated and normalized events
+            transformed_events.append(transaction)
+        except KeyError as err:
+            failed_events.append((event, str(err)))
+
+    print(f"Found {len(transformed_events)} successfully processed events and {len(failed_events)} failed events.")
+
+    return transformed_events
 
 def extract():
-    print("Extracting...")
+    print("\nExtracting...")
 
 def main():
     success, events = load()
@@ -67,8 +87,11 @@ def main():
         exit(1)
     print("Successfully loaded events!")
 
-    transform()
+    transform(events)
+
     extract()
+
+    print("ETL job complete!")
 
 if __name__ == "__main__":
     print("Starting event consumer...")
