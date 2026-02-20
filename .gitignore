@@ -3,3 +3,4 @@
 /consumer/poetry.lock
 /consumer/__pycache__
 /broker
+/database

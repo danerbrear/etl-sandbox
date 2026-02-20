@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from pydantic import BaseModel
 from enum import Enum
 
@@ -27,13 +28,14 @@ class Transaction(BaseModel):
     processed_time: datetime
     source_service: str
 
-    def model_post_init(context: Any) -> None:
-        print("Post init")
+    def model_post_init(self, _context: Any) -> None:
+        if self.amount < 0.0:
+            raise Exception('amount must be greater than 0')
 
     @classmethod
     def from_event(cls, event: Event):
-        event_type = EventType[event.event_type]
-        currency = Currency[event.currency]
+        event_type = EventType(event.event_type)
+        currency = Currency(event.currency)
         processed_time = datetime.now()
         return cls(
             event_id=event.event_id,
@@ -45,3 +47,6 @@ class Transaction(BaseModel):
             processed_time=processed_time,
             source_service=event.source_service
         )
+    
+    def __print__(self):
+        print(f'{self.event_id} | {self.amount} | {self.event_type}')

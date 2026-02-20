@@ -26,11 +26,14 @@ def broker_log_path() -> Path:
 
 def new_event() -> dict:
     """Build one event with the structure from README.md."""
+    amount = round(1.0 + (hash(uuid.uuid4().hex) % 10000) / 100.0, 2)
+    if random.random() < 0.05:  # 5% chance of negative amount
+        amount = -amount
     return {
         "event_id": random.randint(1, 100),
         "event_type": "transaction_created",
         "user_id": hash(uuid.uuid4().hex) % 100_000,
-        "amount": round(1.0 + (hash(uuid.uuid4().hex) % 10000) / 100.0, 2),
+        "amount": amount,
         "currency": "USD",
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source_service": "payments-service",

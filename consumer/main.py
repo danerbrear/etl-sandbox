@@ -7,13 +7,13 @@ from pydantic import ValidationError
 type LoadedEvents = list[Event]
 type TransformedEvents = list[Transaction]
 
-def load() -> tuple[bool, LoadedEvents | None]:
-    print("\nLoading events from stream...")
+def extract() -> tuple[bool, LoadedEvents | None]:
+    print("\Extracting events from stream...")
 
     # Get offset
     offset: int = 0
     try:
-        with open('../broker/offset.txt', 'r') as file:
+        with open('../database/offset.txt', 'r') as file:
             file_content = file.read()
         offset = int(file_content)
         print(f"Starting offset: {offset}")
@@ -57,41 +57,79 @@ def load() -> tuple[bool, LoadedEvents | None]:
 
 def transform(events: LoadedEvents) -> TransformedEvents:
     print("\nTransforming...")
-    transformed_events = []
-    failed_events: list[Event, str] = []
-    for event in events:
-        # Check idempotency
 
+    # Get idempotency keys
+    keys = set()
+    try:
+        with open('../database/idempotency.txt', 'r') as file:
+            file_content = file.read()
+            keys = set(file_content.split(','))
+            print(keys)
+    except:
+        print('Failed to open idempotency table')
+
+    transformed_events = []
+    failed_events: list[tuple[Event, str]] = []
+    events_skipped = 0
+    for event in events:
         try:
+            # Check idempotency
+            if event.event_id in keys:
+                events_skipped += 1
+                continue
+
             # Validate and apply business rules to the event
             transaction = Transaction.from_event(event)
 
-            # Enrich
-
             # Add to list of validated and normalized events
             transformed_events.append(transaction)
-        except KeyError as err:
+        except Exception as err:
             failed_events.append((event, str(err)))
 
-    print(f"Found {len(transformed_events)} successfully processed events and {len(failed_events)} failed events.")
+    print(f"Successfully processed count: {len(transformed_events)}")
+    print(f"Skipped events count: {events_skipped}")
+    print(f"Failure count: {len(failed_events)}")
+
+    if len(failed_events) > 0:
+        event, message = failed_events[0]
+        print(f"\nFirst failed event: {message}\n{event}")
 
     return transformed_events
 
-def extract():
-    print("\nExtracting...")
+def load(transformed_events: TransformedEvents) -> bool:
+    print("\nLoading...")
+    return True
+
+def print_metrics():
+    pass
+
+def commit_progress() -> bool:
+    return True
 
 def main():
-    success, events = load()
+    success, events = extract()
     if not success or events is None:
         print("Failed to load events.")
         exit(1)
     print("Successfully loaded events!")
 
-    transform(events)
+    transformed_events = transform(events)
+    if transformed_events is None:
+        print("Failed to transform events")
+        exit(1)
 
-    extract()
+    success = load(transformed_events)
+    if not success:
+        print("Failed to load data")
+        exit(1)
+    
+    success = commit_progress()
+    if not success:
+        print("Failed to commit job progress")
+        exit(1)
 
     print("ETL job complete!")
+    print_metrics()
 
 if __name__ == "__main__":
     print("Starting event consumer...")

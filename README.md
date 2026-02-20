@@ -27,8 +27,13 @@ We will use a single Python AWS Lambda to handle Extraction, Trasformation, and 
 - Extract
     - Receive the event starting from most recent offset
 - Transform
-    - Validate required fields
+    - Validate required fields and convert strings to enums
     - De-duplicate
-    - Enrich
+    - Enrich with metadata like processed_time
 - Load
     - Upload to the data-store (local CSV file in this project)
+
+## Metrics
+
+- Average payment value
+- Percentage of events per service
